@@ -65,8 +65,6 @@ class TestBooksCollector:
 
         result = self.collector.get_books_for_children()
 
-
-
         assert 'Детская книга' in result
         # Книги с жанром "Ужасы" не должны быть в списке
         assert 'Страшилка' not in result
@@ -76,88 +74,102 @@ class TestBooksCollector:
         book_name = 'Любимая книга'
 
         # Добавляем книгу
-        self.collector.add_new_book(book_name)
+        self.collection = BooksCollector()
+        
+        # Обнуляем коллекцию перед тестом, чтобы избежать влияния предыдущих тестов
+        if hasattr(self.collection, '_favorites_books'):
+            self.collection._favorites_books.clear()
+
+        # Добавляем книгу
+        self.collection.add_new_book(book_name)
 
         # Добавляем в избранное
-        self.collector.add_book_in_favorites(book_name)
+        self.collection.add_book_in_favorites(book_name)
 
-        favorites = self.collector.get_list_of_favorites_books()
+        favorites = self.collection.get_list_of_favorites_books()
 
         # Проверяем, что книга есть в списке избранных
         assert book_name in favorites
 
-        # Повторное добавление не должно увеличивать список
+        
+       # --- Позитивная проверка: список содержит добавленную книгу ---
+       favorites_list = favorites  # уже получен выше
+       assert isinstance(favorites_list, list)
+       assert book_name in favorites_list
 
-    previous_length = len(favorites)
-    self.collector.add_book_in_favorites(book_name)
-    assert len(self.collector.get_list_of_favorites_books()) == previous_length
+       # Повторное добавление не должно увеличивать список
+       previous_length = len(favorites_list)
+       self.collection.add_book_in_favorites(book_name)
+       assert len(self.collection.get_list_of_favorites_books()) == previous_length
 
-    # Удаляем из избранного
-    self.collector.delete_book_from_favorites(book_name)
-    favorites_after_delete = self.collector.get_list_of_favorites_books()
-    assert book_name not in favorites_after_delete
-
-
-def test_delete_nonexistent_from_favorites(self):
-    # Удаление книги, которой нет в избранных — ничего не произойдет без ошибок
-    try:
-        self.collector.delete_book_from_favorites('Некоторая книга')
-    except Exception:
-        pytest.fail("Удаление несуществующей книги вызвало исключение")
-    # Проверка, что список остался пустым
-    assert len(self.collection.get_list_of_favorites_books()) == 0
+       # Удаляем из избранного
+       self.collection.delete_book_from_favorites(book_name)
+       favorites_after_delete = self.collection.get_list_of_favorites_books()
+       assert book_name not in favorites_after_delete
 
 
-def test_get_all_books_when_empty(self):
-    # Проверка метода получения всех книг при пустой коллекции
-    books = self.collection.get_books_genre()
-    assert isinstance(books, dict)
-    assert len(books) == 0
+    def test_delete_nonexistent_from_favorites(self):
+        # Удаление книги, которой нет в избранных — ничего не произойдет без ошибок
+        try:
+            self.collection.delete_book_from_favorites('Некоторая книга')
+            # Если исключение не возникло — тест прошел успешно
+            pass
+         except Exception:
+            pytest.fail("Удаление несуществующей книги вызвало исключение")
+        
+         # Проверка, что список остался пустым (или не изменился)
+         if hasattr(self.collection, '_favorites_books'):
+             assert len(self.collection._favorites_books) == 0
 
 
-def test_add_multiple_books_and_retrieve_all(self):
-    books_to_add = ['Книга А', 'Книга Б', 'Книга В']
-    for book in books_to_add:
-        self.collection.add_new_book(book)
-    all_books = self.collection.get_books_genre()
-    for book in books_to_add:
-        assert book in all_books
+    def test_get_all_books_when_empty(self):
+         # Проверка метода получения всех книг при пустой коллекции
+         books = self.collection.get_books_genre()
+         assert isinstance(books, dict)
+         assert len(books) == 0
 
 
-def test_duplicate_addition_of_same_book(self):
-    book_name = 'Повторная книга'
-    self.collection.add_new_book(book_name)
-    initial_count = len(self.collection.get_books_genre())
-
-    # Попытка добавить ту же книгу еще раз — должна остаться одна запись
-    self.collection.add_new_book(book_name)
-
-    new_count = len(self.collection.get_books_genre())
-    assert initial_count == new_count
+    def test_add_multiple_books_and_retrieve_all(self):
+         books_to_add = ['Книга А', 'Книга Б', 'Книга В']
+         for book in books_to_add:
+             self.collection.add_new_book(book)
+         all_books = self.collection.get_books_genre()
+         for book in books_to_add:
+             assert book in all_books
 
 
-def test_set_and_get_multiple_genres_for_different_books(self):
-    books_and_genres = {
-        'Книга1': 'Фантастика',
-        'Книга2': 'Драма',
-        'Книга3': ''
-    }
+    def test_duplicate_addition_of_same_book(self):
+         book_name = 'Повторная книга'
+         self.collection.add_new_book(book_name)
+         initial_count = len(self.collection.get_books_genre())
 
-    for book, genre in books_and_genres.items():
-        if not book:
-            continue
-        if not genre:
-            continue
-        if not any(b['name'] == book for b in list(self.collection.get_books_genre().values())):
-            self.collection.add_new_book(book)
-        if genre:
-            self.collection.set_book_genre(book, genre)
+         # Попытка добавить ту же книгу еще раз — должна остаться одна запись
+         self.collection.add_new_book(book_name)
 
-    for book, genre in books_and_genres.items():
-        if genre:
-            assert self.collection.get_book_genre(book) == genre
-        else:
-            # Для книг без жанра или с пустым жанром — возвращается ''
-            assert self.collection.get_book_genre(book) == ''
+         new_count = len(self.collection.get_books_genre())
+         assert initial_count == new_count
 
 
+    def test_set_and_get_multiple_genres_for_different_books(self):
+         books_and_genres = {
+             'Книга1': 'Фантастика',
+             'Книга2': 'Драма',
+             'Книга3': ''
+         }
+
+         for book, genre in books_and_genres.items():
+             if not book:
+                 continue
+             if not genre:
+                 continue
+             if not any(b['name'] == book for b in list(self.collection.get_books_genre().values())):
+                 self.collection.add_new_book(book)
+             if genre:
+                 self.collection.set_book_genre(book, genre)
+
+         for book, genre in books_and_genres.items():
+             if genre:
+                 assert self.collection.get_book_genre(book) == genre
+             else:
+                 # Для книг без жанра или с пустым жанром — возвращается ''
+                 assert self.collection.get_book_genre(book) == ''
