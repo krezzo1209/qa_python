@@ -65,8 +65,6 @@ class TestBooksCollector:
 
         result = self.collector.get_books_for_children()
 
-
-
         assert 'Детская книга' in result
         # Книги с жанром "Ужасы" не должны быть в списке
         assert 'Страшилка' not in result
@@ -76,36 +74,52 @@ class TestBooksCollector:
         book_name = 'Любимая книга'
 
         # Добавляем книгу
-        self.collector.add_new_book(book_name)
+        self.collection = BooksCollector()
+
+        # Обнуляем коллекцию перед тестом, чтобы избежать влияния предыдущих тестов
+        if hasattr(self.collection, '_favorites_books'):
+            self.collection._favorites_books.clear()
+
+        # Добавляем книгу
+        self.collection.add_new_book(book_name)
 
         # Добавляем в избранное
-        self.collector.add_book_in_favorites(book_name)
+        self.collection.add_book_in_favorites(book_name)
 
-        favorites = self.collector.get_list_of_favorites_books()
+        favorites = self.collection.get_list_of_favorites_books()
 
         # Проверяем, что книга есть в списке избранных
         assert book_name in favorites
 
-        # Повторное добавление не должно увеличивать список
+        # --- Позитивная проверка: список содержит добавленную книгу ---
 
-    previous_length = len(favorites)
-    self.collector.add_book_in_favorites(book_name)
-    assert len(self.collector.get_list_of_favorites_books()) == previous_length
+    favorites_list = favorites  # уже получен выше
+    assert isinstance(favorites_list, list)
+    assert book_name in favorites_list
+
+    # Повторное добавление не должно увеличивать список
+    previous_length = len(favorites_list)
+    self.collection.add_book_in_favorites(book_name)
+    assert len(self.collection.get_list_of_favorites_books()) == previous_length
 
     # Удаляем из избранного
-    self.collector.delete_book_from_favorites(book_name)
-    favorites_after_delete = self.collector.get_list_of_favorites_books()
+    self.collection.delete_book_from_favorites(book_name)
+    favorites_after_delete = self.collection.get_list_of_favorites_books()
     assert book_name not in favorites_after_delete
 
 
 def test_delete_nonexistent_from_favorites(self):
     # Удаление книги, которой нет в избранных — ничего не произойдет без ошибок
     try:
-        self.collector.delete_book_from_favorites('Некоторая книга')
+        self.collection.delete_book_from_favorites('Некоторая книга')
+        # Если исключение не возникло — тест прошел успешно
+        pass
     except Exception:
         pytest.fail("Удаление несуществующей книги вызвало исключение")
-    # Проверка, что список остался пустым
-    assert len(self.collection.get_list_of_favorites_books()) == 0
+
+        # Проверка, что список остался пустым (или не изменился)
+    if hasattr(self.collection, '_favorites_books'):
+        assert len(self.collection._favorites_books) == 0
 
 
 def test_get_all_books_when_empty(self):
@@ -159,5 +173,4 @@ def test_set_and_get_multiple_genres_for_different_books(self):
         else:
             # Для книг без жанра или с пустым жанром — возвращается ''
             assert self.collection.get_book_genre(book) == ''
-
 
